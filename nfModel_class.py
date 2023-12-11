@@ -130,7 +130,7 @@ class StandardLogistic(torch.distributions.Distribution):
         Returns:
             log-likelihood.
         """
-        return -(F.softplus(u) - F.softplus(-u)) # as in  NICE.
+        return -F.softplus(u) - F.softplus(-u) # as in  NICE.
         #return - u - 2. * F.softplus(-u) #  -u- 2 * log(1 + exp(-u)) equivalent to the above
     
     def sample(self, size):

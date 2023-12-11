@@ -48,7 +48,7 @@ split_order = ["columns","columns_odd","columns","columns_odd"]
 
 
 # add the preprocessing flow
-#flows.append(scaleAll(img_shape,preprocess=True))
+flows.append(scaleAll(img_shape,preprocess=True))
 
 for type in split_order:
     flows.append(Split(split_type=type))
