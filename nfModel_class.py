@@ -10,18 +10,20 @@ Furthermore, it allowed me to finetune the implementation to the specific use ca
 """
 
 class nfModel(nn.Module):
-    def __init__(self,flows, base_distribution_type = "normal"):
+    def __init__(self,flows, base_distribution_type = "normal",post_scale_and_clamp = True):
         """
         Constructor for the nfModel class
         Arguments:
             flows (list): list of flows of type nn.Module. Should be ordered in the direction target distribution -> base distribution 
             base_distribution_type (str): type of base distribution. Currently, standard uniform, standard normal and standard_logistic are supported
             distribution_parameters (list): if uniform distribution, then [min,max], if normal distribution, then [mean,std]
+            post_scale_and_clamp (bool): whether to post scale the data to the range [0,255] and clamp to integers when evaluating the model
         """        
         super().__init__()
         self.flows = nn.ModuleList(flows)
         self.base_distribution_type = base_distribution_type
-        self.base_distribution,self.distribution_param = self.createBaseDistribution(base_distribution_type)        
+        self.base_distribution,self.distribution_param = self.createBaseDistribution(base_distribution_type)
+        self.post_scale_and_clamp = post_scale_and_clamp        
 
     def createBaseDistribution(self,base_distribution_type):           
         if base_distribution_type == "uniform":
@@ -42,13 +44,26 @@ class nfModel(nn.Module):
         """    
         return self.base_distribution.sample(samplesShape)
     
+    
+    def post_scale(self,x):
+        """
+        Postprocessing step to scale the data to the range [0,255]
+        Arguments:
+            x (tensor): input tensor
+        """
+             
+        x = torch.clamp(x,-1.0,1.0)
+        # scale and floor to integers in range [0,255]
+        return torch.floor((x + 1.0) * 127.5)          
+    
     def normalizingDirection(self,x, return_log_det = False):
         """   
         Flow from the target distribution to the base distribution.          
         This is the 'normalizing' direction of the model and noted as u = f(x) in my project.
         Arguments:
             x (tensor): input tensor
-        """         
+        """
+                   
 
         log_det = torch.zeros(len(x)) # initialize log_det to zero
         for flow in self.flows:
@@ -76,6 +91,10 @@ class nfModel(nn.Module):
             log_det += _log_det
 
         x = u # since we should now have transformed u to x
+        if self.training is False:
+            if self.post_scale_and_clamp:
+                x = self.post_scale(x)        
+
         if return_log_det:
             return x,log_det
         else:

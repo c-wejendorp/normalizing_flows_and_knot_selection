@@ -64,7 +64,7 @@ flows.append(scaleAll(img_shape))
 #flows.append(sigmoidAll())
 
 # Construct flow model
-model = nfModel(flows, base_distribution_type = base)
+model = nfModel(flows, base_distribution_type = base) #
 
 
 # check that the model is invertible
@@ -106,6 +106,7 @@ for epoch in range(num_epochs):
     #train_loss_batches = []
     
     for batch, _ in train_loader:
+        # sc
         #inputs, targets = inputs.to(device), targets.to(device)
 
         loss  = model.forwardKL(batch)  
@@ -121,6 +122,7 @@ for epoch in range(num_epochs):
 print("Finished training.")
 
 # now lets try some sampling
+model.eval()
 num_samples = 4
 labels = np.ones(num_samples)
 samples = model.sampleFromBaseDistribution([num_samples]+list(img_shape))
