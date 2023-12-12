@@ -68,8 +68,8 @@ def train_model(args):
         print(f"Train loss: {train_loss_hist[-1]}")
         print(f"Test loss: {test_loss_hist[-1]}")
 
-        # save the model and flow structure every 10 epochs
-        if (epoch+1) % 10 == 0:
+        # save the model and flow structure every 50 epochs
+        if (epoch+1) % 50 == 0:
             checkpoint = {
                 'model': model.state_dict(),
                 'optimizer': optimizer.state_dict(),
