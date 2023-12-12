@@ -7,7 +7,7 @@ from data_functions import *
 import numpy as np
 import argparse
 import os
-from sklearn.model_selection import KFold
+from tqdm import tqdm
 
 def train_model(args):   
 
@@ -37,8 +37,8 @@ def train_model(args):
     train_loss_hist = []
     test_loss_hist = []
 
-    for epoch in range(args.num_epochs):
-        print(f"Epoch {epoch+1}/{args.num_epochs}")
+    for epoch in tqdm(range(args.num_epochs)):
+        #print(f"Epoch {epoch+1}/{args.num_epochs}")
         # train the model             
         model.train()
         curent_train_loss = []
