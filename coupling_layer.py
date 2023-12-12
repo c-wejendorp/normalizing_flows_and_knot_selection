@@ -244,6 +244,45 @@ class scaleAll(flow):
             return z, log_det
         else:
             return z 
+        
+class linearFlow(flow):
+    def __init__(self,input_shape):
+        """
+        """            
+        super().__init__()
+        self.input_shape = input_shape
+        self.W = nn.Parameter(self.sampleOrthogonalMatrix(input_shape))
+
+    def sampleOrthogonalMatrix(self,input_shape):
+        """
+        Samples an orthogonal matrix of with shape (c,h,w)        
+        """
+        # sample random matrix
+        W = torch.randn(input_shape)
+        # compute QR decomposition
+        Q, _ = torch.torch.linalg.qr(W)
+        # compute determinant
+        #det = torch.det(Q)
+        ## if determinant is negative, flip the sign of the first column
+        #if det < 0:
+        #    Q[:,0] = -Q[:,0]
+        return Q
+
+    def normalizingDirection(self,z,return_log_det=False):
+        z = torch.matmul(self.W,z)
+        log_det = torch.log(torch.abs(torch.det(self.W)))
+        if return_log_det:
+            return z, log_det
+        else:
+            return z
+        
+    def generativeDirection(self,z,return_log_det=False):
+        z = torch.matmul(torch.inverse(self.W),z)
+        log_det = torch.log(torch.abs(torch.det(torch.inverse(self.W))))
+        if return_log_det:
+            return z, log_det
+        else:
+            return z        
 
 if __name__ == "__main__":
     # create a random input with values in range [0,256]
@@ -256,10 +295,15 @@ if __name__ == "__main__":
     merge = Merge(split_type="columns")
     # scaling layer
     scale = scaleAll(x.shape[1:],preprocess=False)
+    # linear layer
+    linear = linearFlow(x.shape[1:])
 
-    z = preprocess.normalizingDirection(x)    
 
     #now lets go through the normalizing direction
+    z = preprocess.normalizingDirection(x)
+
+    z = linear.normalizingDirection(z)
+    
     # split the input
     z1,z2 = split.normalizingDirection(z)
     # apply the coupling layer
@@ -273,7 +317,9 @@ if __name__ == "__main__":
     z1,z2 = merge.generativeDirection(x_latent)
     z1,z2 = coupling_layer.generativeDirection([z1,z2])
     x_recon = split.generativeDirection([z1,z2])
+    x_recon = linear.generativeDirection(x_recon)
     x_recon = preprocess.generativeDirection(x_recon)
+
     assert torch.allclose(x,x_recon), "Generative direction is not the inverse of the normalizing direction."
     print("The coupling layer is invertable.")
 

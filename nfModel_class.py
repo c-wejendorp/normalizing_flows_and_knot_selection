@@ -91,9 +91,9 @@ class nfModel(nn.Module):
             log_det += _log_det
 
         x = u # since we should now have transformed u to x
-        if self.training is False:
-            if self.post_scale_and_clamp:
-                x = self.post_scale(x)        
+        #if self.training is False:
+        #    if self.post_scale_and_clamp:
+        #        x = self.post_scale(x)        
 
         if return_log_det:
             return x,log_det

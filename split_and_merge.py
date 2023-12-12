@@ -4,14 +4,22 @@ import torch.nn as nn
 from nfModel_class import *
 
 class Split(flow):
-    def __init__(self,split_type="columns"):
+    def __init__(self,split_type="columns",input_shape=None):
         """
         Arguments: 
-            split_type: columns, columns_odd, rows, rows_odd, checkerboard, checkerboard_odd, top_bottom, bottom_top.        
+            split_type: columns, columns_odd, rows, rows_odd, checkerboard, checkerboard_odd, top_bottom, bottom_top.
+            input_shape: shape of the input tensor without batchsize. Only needed if split_type is random.        
         """     
         super().__init__()
         self.split_type = split_type
-
+        self.perm = None
+        if split_type == "random":
+            if input_shape is None:
+                raise ValueError("input_shape must be specified if split_type is random.")
+            # we need to keep track of the permutation used for the random split
+            self.perm = torch.randperm(input_shape[0]*input_shape[1]*input_shape[2]) 
+                     
+               
     def normalizingDirection(self,z_k : torch.tensor ,return_log_det=False):
         """
         Arguments: 
@@ -62,7 +70,21 @@ class Split(flow):
         elif self.split_type == "bottom_top":
             z1 = z_k[:,:,z_k.shape[2]//2:,:]
             z2 = z_k[:,:,:z_k.shape[2]//2,:]
-            
+
+        elif self.split_type == "random":
+            # flatten the last two dimensions
+            z_temp = torch.flatten(z_k, start_dim=1)                               
+                        
+            # permute the vector
+            z_temp = z_temp[:,self.perm]
+            # reshape back to original shape
+            z_temp = z_temp.reshape(z_k.shape)
+            # split in two
+            z1 = z_temp[:,:,:z_k.shape[2]//2,:]
+            z2 = z_temp[:,:,z_k.shape[2]//2:,:] 
+            #print([z1,z2])
+               
+
         else:
             raise ValueError("split_type must be one of columns, columns_odd, rows, rows_odd, checkerboard and checkerboard_odd.")
         
@@ -135,7 +157,20 @@ class Split(flow):
         elif self.split_type == "top_bottom":
             z_k = torch.cat((z1,z2),dim=2)
         elif self.split_type == "bottom_top":
-            z_k = torch.cat((z2,z1),dim=2)     
+            z_k = torch.cat((z2,z1),dim=2)
+
+        elif self.split_type == "random":
+            # merge the two tensors
+            z_k = torch.cat((z1,z2),dim=2)
+            # flatten the tensor
+            z_temp = torch.flatten(z_k, start_dim=1)
+            # permute the vector back
+            inverse_perm = torch.arange(z_temp.shape[1])
+            inverse_perm[self.perm] = torch.arange(z_temp.shape[1])
+            z_temp = z_temp[:,inverse_perm]            
+            # reshape back to original shape
+            z_k = z_temp.reshape(z_k.shape)
+            
 
         else:
             raise ValueError("split_type must be one of columns, columns_odd, rows, rows_odd, checkerboard and checkerboard_odd.")
@@ -151,8 +186,12 @@ class Merge(Split):
     Same as Split but with normalizing and generative pass interchanged
     """
 
-    def __init__(self,split_type="columns"):
-        super().__init__(split_type)
+    def __init__(self,split_type="columns",input_shape=None,permutation=None):        
+            super().__init__(split_type,input_shape)
+            # overwrite the random permutation that is created when the Split class is initialized
+            # when the split_type is random
+            self.perm = permutation
+            
 
     def normalizingDirection(self, z, return_log_det=False):
         return super().generativeDirection(z,return_log_det=return_log_det)
@@ -162,11 +201,13 @@ class Merge(Split):
 
 if __name__ == "__main__":
     # check if all types of splits are invertible
-    x = torch.randn(1,3,32,32)
-    #x = torch.randn(1,1,4,4)    
-    for split_type in ["columns","columns_odd","rows","rows_odd","checkerboard","checkerboard_odd","top_bottom","bottom_top"]:
-        split = Split(split_type=split_type)
-        merge = Merge(split_type=split_type)
+    #x = torch.randn(1,3,32,32)
+    x = torch.randn(1,1,4,4)
+    #for split_type in ["random"]:    
+    for split_type in ["columns","columns_odd","rows","rows_odd","checkerboard","checkerboard_odd","top_bottom","bottom_top","random"]:
+        split = Split(split_type=split_type,input_shape=x.shape[1:])
+        merge = Merge(split_type=split_type,input_shape=x.shape[1:],permutation=split.perm)
+        # merge = Merge(split_type=split_type)
         z_list,log_det = split.normalizingDirection(x,return_log_det=True)
         # x_recon,log_det = split.generativeDirection(z_list,return_log_det=True)
         x_recon,log_det = merge.normalizingDirection(z_list,return_log_det=True)

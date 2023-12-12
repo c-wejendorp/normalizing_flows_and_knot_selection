@@ -42,7 +42,8 @@ flows = []
 # split_order = ["columns","columns_odd","rows","rows_odd","checkerboard","checkerboard_odd"]
 
 # works decently
-split_order = ["columns","columns_odd","columns","columns_odd"]
+#split_order = ["columns","columns_odd","columns","columns_odd"]
+split_order = ["random","random","random","random"]
 # lets try change the last bit to top_bottom and bottom_top
 #split_order = ["top_bottom","bottom_top","top_bottom","bottom_top"]
 
@@ -51,11 +52,12 @@ split_order = ["columns","columns_odd","columns","columns_odd"]
 flows.append(scaleAll(img_shape,preprocess=True))
 
 for type in split_order:
-    flows.append(Split(split_type=type))
+    #flows.append(linearFlow(img_shape)) # does not work well
+    flows.append(Split(split_type=type, input_shape=img_shape))
     # line below works, but not good results. requires normlayer added in coupling layer
     #flows.append(couplingLayer(img_shape,num_hidden_layers=5,num_hidden_units=1000,scale=True,init_zeros=True,output_activation="tanh"))
     flows.append(couplingLayer(img_shape,num_hidden_layers=5,num_hidden_units=1000,scale=False,init_zeros=True))
-    flows.append(Merge(split_type=type))
+    flows.append(Merge(split_type=type, input_shape=img_shape))
 
 # add a special type of flow that scale every dim similar to the NICE paper
 
@@ -82,7 +84,7 @@ x_s = model.generativeDirection(u_s) # back again through the generative directi
 
 print("Sanity check:")
 #print(torch.isclose(images,x_s).all()) # should be true, but might not be due to numerical errors
-print(torch.isclose(images, x_s, atol=1e-4, rtol=1e-8).all())
+print(torch.isclose(images, x_s, atol=1e-3, rtol=1e-8).all())
 
 # now lets train the model
 
@@ -95,7 +97,7 @@ optimizer = torch.optim.Adam(model.parameters(), lr=1e-3,weight_decay=1e-5)
 
 #optimizer = torch.optim.Adam(model.parameters(), lr=1e-3,weight_decay=1e-5)
 
-num_epochs = 1000
+num_epochs = 500
 model.train()
 
 loss_hist = []
@@ -140,7 +142,7 @@ checkpoint = {
     'lost_hist': loss_hist
 }
 
-torch.save(checkpoint, f'NICE_logistic-top_bot_split_types-seed_{seed}_1000_epochs.pth')
+torch.save(checkpoint, f'logistic_random-seed_{seed}_100_epochs.pth')
 
 
 

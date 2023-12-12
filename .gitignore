@@ -165,3 +165,4 @@ cython_debug/
 /model_checkpoints
 /figures
 /untrained_models
+/trained_models
