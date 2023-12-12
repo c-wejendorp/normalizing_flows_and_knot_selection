@@ -54,6 +54,9 @@ def crossValidation(args):
             model.train()
             curent_train_loss = []
             for batch, _ in train_loader:
+                # cast to device
+                batch = batch.to(device)
+
                 loss  = model.forwardKL(batch)  
                 optimizer.zero_grad()
                 loss.backward()
@@ -69,6 +72,8 @@ def crossValidation(args):
                 # loss on validation set
                 val_loss = []
                 for batch, _ in test_loader:
+                    # cast to device
+                    batch = batch.to(device)
                     loss  = model.forwardKL(batch)  
                     val_loss.append(loss.detach().to('cpu').numpy())
                 # keep track of the validation loss over epochs
