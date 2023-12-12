@@ -4,7 +4,7 @@ import os
 
 def createSubmitScripts():
     # loop over models in the folder
-    for idx,filename in enumerate(os.listdir('untrained_models')):
+    for idx,filename in enumerate(sorted(os.listdir('untrained_models'))):
                         
 
             script_template = '''
