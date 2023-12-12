@@ -65,8 +65,8 @@ def train_model(args):
             test_loss_hist.append(np.mean(val_loss))
 
         #pring the current train and validation loss
-        print(f"Train loss: {train_loss_hist[-1]}")
-        print(f"Test loss: {test_loss_hist[-1]}")
+        #print(f"Train loss: {train_loss_hist[-1]}")
+        #print(f"Test loss: {test_loss_hist[-1]}")
 
         # save the model and flow structure every 50 epochs
         if (epoch+1) % 50 == 0:

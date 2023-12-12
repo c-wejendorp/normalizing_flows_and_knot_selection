@@ -166,3 +166,4 @@ cython_debug/
 /figures
 /untrained_models
 /trained_models
+/submit_scripts
