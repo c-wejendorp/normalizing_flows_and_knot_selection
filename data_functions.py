@@ -33,16 +33,19 @@ def createDataSet(digit):
 def show_batch_images(images, labels, batch_size,clamp=False):    
     rows = int(math.sqrt(batch_size))
     cols = rows
+    
+    if clamp:
+        #clamp values to [0,255.9]
+        images = torch.clamp(images,0,255.9)
+    # floor the values
+    images = torch.floor(images)    
+
     for i in range(batch_size):
         plt.subplot(rows, cols, i + 1)
         # change the first pixel to zero
-        if clamp:
-            #clamp values to [0,1]
-            image_x = torch.clamp(images[i],0,1)
-            plt.imshow(image_x[0].detach().numpy(), cmap='gray')
-        else: 
+        
 
-            plt.imshow(images[i][0].detach().numpy(), cmap='gray')
+        plt.imshow(images[i][0].detach().numpy(), cmap='gray')
         #plt.title(f"Label: {labels[i].item()}")
         plt.axis('off')
     plt.show()

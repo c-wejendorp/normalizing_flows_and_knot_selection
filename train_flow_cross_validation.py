@@ -10,9 +10,7 @@ import os
 from sklearn.model_selection import KFold
 
 def crossValidation(args):
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')    
-    torch.set_default_device(device)
-    print(f"Using device: {device}")
+    
 
     # create folder for trained models
     if not os.path.exists("trained_models"):
@@ -23,8 +21,7 @@ def crossValidation(args):
     model_path = os.path.join(args.model_folder,args.model_name)
     inital_checkpoint = torch.load(model_path)
     model = nfModel(inital_checkpoint["flows"], base_distribution_type = inital_checkpoint["base_distribution_type"],)
-    # put the model on the device
-    model.to(device) 
+    
 
     # choose optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)        
@@ -53,9 +50,7 @@ def crossValidation(args):
             # train the model             
             model.train()
             curent_train_loss = []
-            for batch, _ in train_loader:
-                # cast to device
-                batch = batch.to(device)
+            for batch, _ in train_loader:                              
 
                 loss  = model.forwardKL(batch)  
                 optimizer.zero_grad()
@@ -71,9 +66,7 @@ def crossValidation(args):
             with torch.no_grad():
                 # loss on validation set
                 val_loss = []
-                for batch, _ in test_loader:
-                    # cast to device
-                    batch = batch.to(device)
+                for batch, _ in test_loader:                                      
                     loss  = model.forwardKL(batch)  
                     val_loss.append(loss.detach().to('cpu').numpy())
                 # keep track of the validation loss over epochs
@@ -92,7 +85,8 @@ def crossValidation(args):
                     'loss': loss,
                     'flows': model.flows,
                     'loss_hist': train_loss_hist,
-                    'val_loss_hist': val_loss_hist
+                    'val_loss_hist': val_loss_hist,
+                    'base_distribution_type': inital_checkpoint["base_distribution_type"],
                 }
                 torch.save(checkpoint, f'trained_models/{args.model_name}_fold_{fold}_epoch_{epoch}.pth')
 
@@ -105,7 +99,8 @@ def crossValidation(args):
                     'loss': loss,
                     'flows': model.flows,
                     'loss_hist': train_loss_hist,
-                    'val_loss_hist': val_loss_hist
+                    'val_loss_hist': val_loss_hist,
+                    'base_distribution_type': inital_checkpoint["base_distribution_type"],
                 }
         torch.save(checkpoint, f'trained_models/{args.model_name}_fold_{fold}_epoch_{epoch}.pth')
 
