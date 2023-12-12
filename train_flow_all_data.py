@@ -69,7 +69,7 @@ def train_model(args):
         #print(f"Test loss: {test_loss_hist[-1]}")
 
         # save the model and flow structure every 50 epochs
-        if (epoch+1) % 50 == 0:
+        if (epoch+1) % 30 == 0:
             checkpoint = {
                 'model': model.state_dict(),
                 'optimizer': optimizer.state_dict(),
@@ -80,7 +80,7 @@ def train_model(args):
                 'test_loss_hist': test_loss_hist,
                 'base_distribution_type': inital_checkpoint["base_distribution_type"],
             }
-            torch.save(checkpoint, f'trained_models/{args.model_name}_all_data_epoch_{epoch}.pth')
+            torch.save(checkpoint, f'{args.save_folder}/{args.model_name}_all_data_epoch_{epoch}.pth')
 
         # save the model and flow structure after all epochs
 
@@ -94,7 +94,8 @@ def train_model(args):
                 'test_loss_hist': test_loss_hist,
                 'base_distribution_type': inital_checkpoint["base_distribution_type"],
             }
-    torch.save(checkpoint, f'trained_models/{args.model_name}_fold_all_data_epoch_{epoch}.pth')
+    
+    torch.save(checkpoint, f'{args.save_folder}/{args.model_name}_all_data_epoch_{epoch}.pth')
 
 if __name__ == "__main__":
     
@@ -108,6 +109,8 @@ if __name__ == "__main__":
     parser.add_argument('--model_name', type=str, default='flow_1_logistic_seed_15.pt', help='name of the pt made by create_flows.py')
     parser.add_argument('--model_folder', type=str, default='untrained_models', help='path to the model')
     parser.add_argument('--digit', type=int, default=1, help='digit to train on')
+    parser.add_argument('--save_folder', type=str, default='trained_models', help='path to the model')
+    parser.add_argument('--save_folder',type=str, default='/work3/s204090/trained_models/', help='name of folder to save the models in')
     
     # parse the arguments
     args = parser.parse_args()
