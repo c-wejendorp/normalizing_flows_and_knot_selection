@@ -30,25 +30,32 @@ def createDataSet(digit):
     return trainset, testset
 
 # Define a function to plot images from a batch
-def show_batch_images(images, labels, batch_size,clamp=False):    
+def show_batch_images(images, batch_size, clamp=False,save=True,model_name=None):
     rows = int(math.sqrt(batch_size))
     cols = rows
-    
+
     if clamp:
-        #clamp values to [0,255.9]
-        images = torch.clamp(images,0,255.9)
-    # floor the values
-    images = torch.floor(images)    
+        # Clamp values to [0, 255.9]
+        images = torch.clamp(images, 0, 255.9)
 
+    # Floor the values (corresponds to dequantization)
+    images = torch.floor(images)
+
+    fig, axs = plt.subplots(rows, cols, figsize=(rows, cols))
+    
     for i in range(batch_size):
-        plt.subplot(rows, cols, i + 1)
-        # change the first pixel to zero
-        
+        ax = axs[i // rows, i % cols]
 
-        plt.imshow(images[i][0].detach().numpy(), cmap='gray')
-        #plt.title(f"Label: {labels[i].item()}")
-        plt.axis('off')
-    plt.show()
+        ax.imshow(images[i][0].detach().numpy(), cmap='gray')
+        # ax.set_title(f"Label: {labels[i].item()}")  # Uncomment if you have labels
+        ax.axis('off')
+
+    plt.subplots_adjust(wspace=0.1, hspace=0.1) 
+    # add title
+    title = f"Samples from {model_name}, clamped" if clamp else f"Samples from {model_name}"
+    plt.suptitle(title)
+    #save fig
+    plt.savefig(f"{title}.png", dpi=300) if save else plt.show()
 
 if __name__ == "__main__":
     # Test the functions

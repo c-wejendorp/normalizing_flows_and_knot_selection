@@ -19,14 +19,23 @@ def generate_samples(args):
     model.eval()
     # generate samples
     samples = model.sampleFromBaseDistribution([args.num_samples]+[1,28,28])
-    samples = model.generativeDirection(samples)    
-    # plot the samples
-    # create labels for the samples
-    labels = torch.ones(args.num_samples)
-    if args.clamp:
-        show_batch_images(samples, labels, args.num_samples, clamp=True)
-    else:
-        show_batch_images(samples, labels, args.num_samples)
+    samples = model.generativeDirection(samples)
+    # clamp and floor
+    images = torch.clamp(samples, 0, 255.9)
+    images = torch.floor(images)
+    # save individual images
+    # create a folder for the images
+    # Create a folder for the images
+    save_folder = f"sample_images/{args.model_name}"
+    os.makedirs(save_folder, exist_ok=True)
+
+    for i in range(args.num_samples):
+        image = images[i]
+        image = image.detach().numpy()
+        image = np.squeeze(image)
+        # save the image
+        plt.imsave(f"{save_folder}/sample_{i}.png", image, cmap="gray") 
+      
 
 if __name__ == "__main__":    
     # make an argument parser
@@ -34,9 +43,7 @@ if __name__ == "__main__":
     #parser.add_argument('--model_name', type=str, default='', help='name of the pt made by create_flows.py')
     parser.add_argument('--model_name', type=str, default='flow_1_logistic_seed_15.pt_fold_0_epoch_149.pth', help='name of the model to load')
     parser.add_argument('--model_folder', type=str, default='trained_models', help='path to the model')
-    parser.add_argument('--num_samples', type=int, default=16, help='number of samples to generate')
-    parser.add_argument('--clamp', type=int, default=0, help='clamp the values to [0,256], 1 for yes, 0 for no')    
-    
+    parser.add_argument('--num_samples', type=int, default=16, help='number of samples to generate')    
     
     # parse the arguments
     args = parser.parse_args()
