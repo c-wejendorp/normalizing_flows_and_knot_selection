@@ -168,3 +168,4 @@ cython_debug/
 /trained_models
 /submit_scripts
 /logs
+/sampled_images

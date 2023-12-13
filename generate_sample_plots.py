@@ -22,5 +22,10 @@ def plot_samples(model_name, num_samples):
     samples = model.generativeDirection(samples)    
     # plot the samples
     # both clamped and not clamped
-    show_batch_images(samples,num_samples, clamp=False,save=True)
-    show_batch_images(samples,num_samples, clamp=True,save=True) 
+    flow_type = model_name.split("_")[1]
+    show_batch_images(samples,num_samples, clamp=False,save=True, model_name=f'flow_{flow_type}')
+    show_batch_images(samples,num_samples, clamp=True,save=True, model_name=f'flow_{flow_type}')
+
+if __name__ == "__main__":    
+    plot_samples("flow_1_logistic_seed_30.pt_all_data_epoch_89.pth",16)
+    plot_samples("flow_2_logistic_seed_30.pt_all_data_epoch_89.pth",16)

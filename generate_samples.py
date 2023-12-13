@@ -26,24 +26,29 @@ def generate_samples(args):
     # save individual images
     # create a folder for the images
     # Create a folder for the images
-    save_folder = f"sample_images/{args.model_name}"
+    name = "_".join(args.model_name.split("_")[:2])
+    save_folder = f"sampled_images/{name}"
     os.makedirs(save_folder, exist_ok=True)
-
-    for i in range(args.num_samples):
-        image = images[i]
-        image = image.detach().numpy()
-        image = np.squeeze(image)
-        # save the image
-        plt.imsave(f"{save_folder}/sample_{i}.png", image, cmap="gray") 
+    # save the images
+    if args.saveformat == "pt":
+        torch.save(images, f"{save_folder}/samples_{name}.pt")
+    elif args.saveformat == "png":
+        for i in range(args.num_samples):
+            image = images[i]
+            image = image.detach().numpy()
+            image = np.squeeze(image)
+            # save the image
+            plt.imsave(f"{save_folder}/sample_{i}.png", image, cmap="gray") 
       
 
 if __name__ == "__main__":    
     # make an argument parser
     parser = argparse.ArgumentParser(description='Load a trained model generate samples from it')    
     #parser.add_argument('--model_name', type=str, default='', help='name of the pt made by create_flows.py')
-    parser.add_argument('--model_name', type=str, default='flow_1_logistic_seed_15.pt_fold_0_epoch_149.pth', help='name of the model to load')
+    parser.add_argument('--model_name', type=str, default='flow_1_logistic_seed_30.pt_all_data_epoch_89.pth', help='name of the model to load')
     parser.add_argument('--model_folder', type=str, default='trained_models', help='path to the model')
-    parser.add_argument('--num_samples', type=int, default=16, help='number of samples to generate')    
+    parser.add_argument('--num_samples', type=int, default=10000, help='number of samples to generate')
+    parser.add_argument('--saveformat', type=str, default='pt', help='type of file to save the images as, pt or png')    
     
     # parse the arguments
     args = parser.parse_args()
