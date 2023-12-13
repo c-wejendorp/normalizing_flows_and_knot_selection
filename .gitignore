@@ -167,3 +167,4 @@ cython_debug/
 /untrained_models
 /trained_models
 /submit_scripts
+/logs
