@@ -32,7 +32,7 @@ if __name__ == "__main__":
     # make an argument parser
     parser = argparse.ArgumentParser(description='Load a trained model generate samples from it')    
     #parser.add_argument('--model_name', type=str, default='', help='name of the pt made by create_flows.py')
-    parser.add_argument('--model_name', type=str, default='flow_1_logistic_seed_15.pt_all_data_epoch_9.pth', help='name of the model to load')
+    parser.add_argument('--model_name', type=str, default='flow_1_logistic_seed_15.pt_fold_0_epoch_149.pth', help='name of the model to load')
     parser.add_argument('--model_folder', type=str, default='trained_models', help='path to the model')
     parser.add_argument('--num_samples', type=int, default=16, help='number of samples to generate')
     parser.add_argument('--clamp', type=int, default=0, help='clamp the values to [0,256], 1 for yes, 0 for no')    

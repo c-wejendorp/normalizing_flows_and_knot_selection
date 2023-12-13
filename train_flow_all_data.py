@@ -104,12 +104,10 @@ if __name__ == "__main__":
     parser.add_argument('--num_epochs', type=int, default=150, help='number of epochs to train for')
     parser.add_argument('--batch_size', type=int, default=64, help='batch size')
     parser.add_argument('--lr', type=float, default=1e-3, help='learning rate')
-    parser.add_argument('--weight_decay', type=float, default=1e-5, help='weight decay')       
-    #parser.add_argument('--model_name', type=str, default='', help='name of the pt made by create_flows.py')
-    parser.add_argument('--model_name', type=str, default='flow_1_logistic_seed_15.pt', help='name of the pt made by create_flows.py')
+    parser.add_argument('--weight_decay', type=float, default=1e-5, help='weight decay')           
+    parser.add_argument('--model_name', type=str, default='', help='name of the pt made by create_flows.py')
     parser.add_argument('--model_folder', type=str, default='untrained_models', help='path to the model')
-    parser.add_argument('--digit', type=int, default=1, help='digit to train on')
-    parser.add_argument('--save_folder', type=str, default='trained_models', help='path to the model')
+    parser.add_argument('--digit', type=int, default=1, help='digit to train on')    
     parser.add_argument('--save_folder',type=str, default='/work3/s204090/trained_models/', help='name of folder to save the models in')
     
     # parse the arguments
