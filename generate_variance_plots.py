@@ -13,6 +13,11 @@ def plot_variance():
     samples_flow_1 = torch.load("sampled_images/flow_1/samples_flow_1.pt")
     samples_flow_2 = torch.load("sampled_images/flow_2/samples_flow_2.pt")
     # Find the variance
+    # scale to be between 0 and 1
+    images_org = images_org.float()/255
+    samples_flow_1 = samples_flow_1.float()/255
+    samples_flow_2 = samples_flow_2.float()/255
+
     variance_images = torch.var(images_org.float(), dim=0)
     variance_flow_1 = torch.var(samples_flow_1, dim=0)
     variance_flow_2 = torch.var(samples_flow_2, dim=0)
@@ -22,20 +27,23 @@ def plot_variance():
     # Original
     im0 = axs[0].imshow(variance_images.detach().numpy())
     axs[0].set_title("Original")
+    cbar0 = fig.colorbar(im0, ax=axs[0], fraction=0.046, pad=0.04)
     # Flow 1
     im1 = axs[1].imshow(variance_flow_1[0].detach().numpy())
     axs[1].set_title("Flow 1")
+    cbar1 = fig.colorbar(im1, ax=axs[1], fraction=0.046, pad=0.04)
     # Flow 2
     im2 = axs[2].imshow(variance_flow_2[0].detach().numpy())
-    axs[2].set_title("Flow 2")        
-    # Add a single colorbar for all subplots
-    divider = make_axes_locatable(axs[2])
-    cax = divider.append_axes("right", size="5%", pad=0.1)
-    cbar = fig.colorbar(im2, cax=cax)
+    axs[2].set_title("Flow 2")
+    cbar2 = fig.colorbar(im2, ax=axs[2], fraction=0.046, pad=0.04)
+    #remove ticks form all subplots
+    for ax in axs:
+        ax.set_xticks([])
+        ax.set_yticks([])
     # reduce whitespace
     fig.tight_layout()
     # add a title close to the figure
-    fig.suptitle("Pixel Variance", y=0.8)
+    fig.suptitle("Pixel Variance for Pixels Scaled to [0,1]", y=0.8)
     
     # save the figure in the figures folder in a subfolder called variance_plots
     # make the folder if it does not exist
