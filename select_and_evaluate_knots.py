@@ -34,12 +34,12 @@ def select_knots(train_set,test_set,degree,uniform=False):
         # return x and y knot vectors, which are the same for uniform
         return knot_vector,knot_vector
     
-    def non_uniform_selection(num_knots,img_shape):
+    def non_uniform_selection(train_set,num_knots,img_shape):
         """
         Creates a non-uniform knot vector for the given number of knots and image shape.
         """
         #find the variance of the dataset
-        variance = torch.var(dataset.float(), dim=0)
+        variance = torch.var(train_set.float(), dim=0)
         #find the indices of the top variance pixels
         
         sorted_indices = torch.argsort(variance.view(-1), descending=True)
@@ -51,12 +51,18 @@ def select_knots(train_set,test_set,degree,uniform=False):
         # select the top variance pixels but if x or y index exists already, skip it
         x_knots = []
         y_knots = []
+        non_allowed_indices = [0,img_shape[0]-1]
         for x,y in indices: 
-            if x not in x_knots and y not in y_knots and x != 0 and y != 0:
+            if x not in x_knots and not x in non_allowed_indices:
                 x_knots.append(x)
+            if y not in y_knots and not x in non_allowed_indices:
                 y_knots.append(y)
-            if len(x_knots) == num_knots:
+            if len(x_knots) == num_knots and len(y_knots) == num_knots:
                 break
+        # if there to many indices, remove the last ones        
+        x_knots = x_knots[:num_knots]        
+        y_knots = y_knots[:num_knots]
+
         # sort the knots
         x_knots.sort()
         # add 0 and 27 to the beginning and end of the knot vector and pad
@@ -86,6 +92,8 @@ def select_knots(train_set,test_set,degree,uniform=False):
         # make them orthogonal
         A = gram_schmidt(A)
         B = gram_schmidt(B)
+        #A = torch.qr(A).Q
+        #B = torch.qr(B).Q
         # fit the surface
         # solve the least squares problem by calculating C = (A^T A)^-1 A^T G B (B^T B)^-1 where G is the image    
         # C = np.linalg.inv(A.T @ A) @ A.T @ image @ B @ np.linalg.inv(B.T @ B) 
@@ -114,31 +122,34 @@ def select_knots(train_set,test_set,degree,uniform=False):
     # let's just use the first image for debugging
     #train_set = train_set[0]
     # knot range to try
-    knot_range = np.arange(4,20,2) #end is exclusive  
+    knot_range = np.arange(4,24,2) #end is exclusive  
     #knot_range = [28] 
     # if uniform is true, use uniform knot spacing
+    # Initialize an empty DataFrame
+    result_df = pd.DataFrame(columns=['Type', 'Internal Knots', 'MSE Train', 'MSE Test'])
+    
+    test_z_splines = []
+
     for num_knots in knot_range:
         if uniform:
-            x_knots,y_knots = uniform_selection(num_knots,img_shape)
-            #fit the surface
-            MSE_train, MSE_test, z_splines_train, z_splines_test= fit_surface(train_set,test_set,degree,x_knots,y_knots,img_shape)
-            print(f"MSE for uniform knot spacing with {num_knots} internal knots:")
-            print("MSE for training set:")
-            print(MSE_train.item())
-            print("MSE for test set:")
-            print(MSE_test.item())
-
+            x_knots, y_knots = uniform_selection(num_knots, img_shape)
         else:
-            x_knots,y_knots = non_uniform_selection(num_knots,img_shape)
-            #print(x_knots)
-            #print(y_knots)
-            #fit the surface
-            MSE_train, MSE_test, z_splines_train, z_splines_test = fit_surface(train_set,test_set,degree,x_knots,y_knots,img_shape)
-            print(f"MSE for non-uniform knot spacing with {num_knots} internal knots:")
-            print("MSE for training set:")
-            print(MSE_train.item())
-            print("MSE for test set:")
-            print(MSE_test.item())
+            x_knots, y_knots = non_uniform_selection(train_set,num_knots, img_shape)
+
+        # Fit the surface
+        MSE_train, MSE_test, z_splines_train, z_splines_test = fit_surface(train_set, test_set, degree, x_knots, y_knots, img_shape)
+        test_z_splines.append(z_splines_test)
+
+
+        # Determine the type of knot spacing
+        knot_spacing_type = 'Uniform' if uniform else 'Non-Uniform'
+
+        # Add results to the DataFrame
+        result_df.loc[len(result_df)] = [knot_spacing_type, num_knots, round(MSE_train.item(),4), round(MSE_test.item(),4)]
+
+    # Display the results DataFrame
+    print(result_df)
+    return result_df, test_z_splines
   
 
 if __name__ == "__main__":
@@ -151,10 +162,20 @@ if __name__ == "__main__":
     samples_flow_1 = torch.load("sampled_images/flow_1/samples_flow_1.pt")
     samples_flow_2 = torch.load("sampled_images/flow_2/samples_flow_2.pt")
     # add to list
-    datasets = [images_org, samples_flow_1, samples_flow_2]
-    datasets = [images_org]
-    for dataset in datasets:
+    datasets = [images_org, samples_flow_1, samples_flow_2]    
+    names = ["Original", "Flow_1", "Flow_2"]
+    
+    #datasets = [images_org]
+    for idx,dataset in enumerate(datasets):
         #scale to be between 0 and 1
-        training_set = dataset.squeeze().float()/255 
-        select_knots(training_set,test_set,3,uniform=True)
-        select_knots(training_set,test_set,3,uniform=False)
+        training_set = dataset.squeeze().float()/255
+        print(names[idx])
+        #select the knots        
+        df_uniform,test_z_splines_uniform=select_knots(training_set,test_set,3,uniform=True)
+        df_non_uniform,test_z_splines_list_nonuniform=select_knots(training_set,test_set,3,uniform=False)
+        #save the dataframes
+        df_uniform.to_csv("dataframes/df_uniform_"+names[idx]+".csv")
+        df_non_uniform.to_csv("dataframes/df_non_uniform_"+names[idx]+".csv")
+        #save the test z splines
+        torch.save(test_z_splines_uniform,"OB_surfaces/test_OB_surfaces_uniform_"+names[idx]+".pt")
+        torch.save(test_z_splines_list_nonuniform,"OB_surfaces/test_OB_surfaces_non_uniform_"+names[idx]+".pt")
