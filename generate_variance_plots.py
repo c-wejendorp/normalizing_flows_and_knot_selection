@@ -7,62 +7,59 @@ from data_functions import *
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import os
 
+import os
+import torch
+import matplotlib.pyplot as plt
+from matplotlib.colors import Normalize
 
-def plot_variance():
-    #load the orginal dataset
+def load_samples(flow_folder):
+    return (torch.load(f"sampled_images/{flow_folder}/samples_{flow_folder}.pt").float() / 255).squeeze()
+
+def plot_flow(ax, title, variance,fig,knots=None,normalizer=None):
+    im = ax.imshow(variance.detach().numpy(), norm=normalizer)
+    ax.set_title(title)
+    fig.colorbar(im, ax=ax, orientation='vertical', shrink=0.4)
+
+    if knots is not None:        
+            [ax.axvline(x=k, color="red", linewidth=0.5) for k in knots[0]]
+            [ax.axhline(y=k, color="red", linewidth=0.5) for k in knots[1]]
+            
+            ax.set_xticks(knots[0])
+            ax.set_yticks(knots[1])
+            ax.set_xticklabels(knots[0],fontsize=4)
+            ax.set_yticklabels(knots[1],fontsize=4)
+ 
+def plot_variance(knots=None):
     train_set, _ = createDataSet(1)
-    images_org = train_set.data
-    samples_flow_1 = torch.load("sampled_images/flow_1/samples_flow_1.pt")
-    samples_flow_2 = torch.load("sampled_images/flow_2/samples_flow_2.pt")
-    # Find the variance
-    # scale to be between 0 and 1
-    images_org = (images_org.float()/255).squeeze()
-    samples_flow_1 = (samples_flow_1.float()/255).squeeze()
-    samples_flow_2 = (samples_flow_2.float()/255).squeeze()
-    #squeeze the images
-
-
-    variance_images = torch.var(images_org.float(), dim=0)
-    variance_flow_1 = torch.var(samples_flow_1, dim=0)
-    variance_flow_2 = torch.var(samples_flow_2, dim=0)
-    # Visualize the variance in subplots
-    fig, axs = plt.subplots(1, 3)
-
-    # set the min and max values for the colorbar
-    vmin = min(variance_images.min(), variance_flow_1.min(), variance_flow_2.min())
-    vmax = max(variance_images.max(), variance_flow_1.max(), variance_flow_2.max())
-    norm = Normalize(vmin=vmin, vmax=vmax)
-
-    shrink_value = 0.4
-    # Original
-    im0 = axs[0].imshow(variance_images.detach().numpy(), norm=norm)
-    axs[0].set_title("Original")
-    fig.colorbar(im0, ax=axs[0], orientation='vertical', shrink=shrink_value)
-    # Flow 1
-    im1 = axs[1].imshow(variance_flow_1.detach().numpy(), norm=norm)
-    axs[1].set_title("Flow 1")
-    fig.colorbar(im1, ax=axs[1], orientation='vertical', shrink=shrink_value)
-    # Flow 2
-    im2 = axs[2].imshow(variance_flow_2.detach().numpy(), norm=norm)
-    axs[2].set_title("Flow 2")
-    fig.colorbar(im2, ax=axs[2], orientation='vertical', shrink=shrink_value)
-
-    #remove ticks form all subplots
-    for ax in axs:
-        ax.set_xticks([])
-        ax.set_yticks([])
-    # reduce whitespace
-    fig.tight_layout()
-    # add a title close to the figure
-    fig.suptitle("Pixel Variance for Pixels Scaled to [0,1]", y=0.8)
+    images_org = (train_set.data.float() / 255).squeeze()
     
-    # save the figure in the figures folder in a subfolder called variance_plots
-    # make the folder if it does not exist
+    flows = ["flow_1", "flow_2"]
+    variances = [torch.var(images_org, dim=0)]+[torch.var(load_samples(flow), dim=0) for flow in flows]
+    # find the maximum variance across all flows
+    max_variance = max([torch.max(variance) for variance in variances]+[torch.max(torch.var(images_org, dim=0))])
+    min_variance = min([torch.min(variance) for variance in variances]+[torch.min(torch.var(images_org, dim=0))])
+    # create normalizer
+    normalizer = Normalize(vmin=min_variance, vmax=max_variance)
+
+    fig, axs = plt.subplots(1, len(flows) + 1)
+
+    for i, (ax, title, variance) in enumerate(zip(axs, ["Original"] + flows, variances)):
+        plot_flow(ax, title, variance, fig, knots=knots, normalizer=normalizer)
+    if knots is None:
+        [ax.set_xticks([]) for ax in axs]
+        [ax.set_yticks([]) for ax in axs]
+    
+    fig.tight_layout()
+    fig.suptitle("Pixel Variance for Pixels Scaled to [0,1]", y=0.8)
+
     os.makedirs("figures/variance_plots", exist_ok=True)
     plt.savefig("figures/variance_plots/variance_plots.png", dpi=300, bbox_inches='tight')
 
+
 if __name__ == "__main__":
     plot_variance()
+    #plot_variance(knots=[[4, 8, 12, 16, 20], [4, 8, 12, 16, 20]])
+
 
    
     

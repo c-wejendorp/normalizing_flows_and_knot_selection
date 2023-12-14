@@ -5,6 +5,7 @@ from data_functions import *
 import os
 from spline_functions import *
 import pandas as pd
+from generate_variance_plots import plot_variance
 
 def select_knots(train_set,test_set,degree,uniform=False):
     """
@@ -90,24 +91,7 @@ def select_knots(train_set,test_set,degree,uniform=False):
         A = B_spline_matrix(torch.arange(img_shape[0]), degree + 1 + L1 -1, degree, x_knots)
         B = B_spline_matrix(torch.arange(img_shape[1]), degree + 1 + L2 -1, degree, y_knots)
 
-        #using QR decomposition to solve the least squares problem, does not work
-        """
-        # make them orthogonal        
-        A_q,A_r = torch.qr(A)
-        B_q,B_r = torch.qr(B)
-        #training set
-        left = torch.matmul(torch.inverse(A_r), (torch.transpose(A_q, 0, 1)))
-        right = torch.matmul(B_q, torch.transpose(torch.inverse(B_r),0,1))
-        C= left @ images @ right
-        z_splines_train = torch.matmul(A, C) @ torch.transpose(B, 0, 1)
-        MSE_train = torch.mean((images - z_splines_train) ** 2)         
-        #test set
-        left = torch.matmul(torch.inverse(A_r), (torch.transpose(A_q, 0, 1)))
-        right = torch.matmul(B_q, torch.transpose(torch.inverse(B_r),0,1))
-        C= left @ test_set @ right
-        z_splines_test = torch.matmul(A, C) @ torch.transpose(B, 0, 1)
-        MSE_test = torch.mean((test_set - z_splines_test) ** 2)       
-        """
+         
         # as in the report
         # make them orthogonal
         A = gram_schmidt(A)
