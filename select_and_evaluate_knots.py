@@ -89,11 +89,29 @@ def select_knots(train_set,test_set,degree,uniform=False):
         # create the B-spline basis matrices
         A = B_spline_matrix(torch.arange(img_shape[0]), degree + 1 + L1 -1, degree, x_knots)
         B = B_spline_matrix(torch.arange(img_shape[1]), degree + 1 + L2 -1, degree, y_knots)
+
+        #using QR decomposition to solve the least squares problem, does not work
+        """
+        # make them orthogonal        
+        A_q,A_r = torch.qr(A)
+        B_q,B_r = torch.qr(B)
+        #training set
+        left = torch.matmul(torch.inverse(A_r), (torch.transpose(A_q, 0, 1)))
+        right = torch.matmul(B_q, torch.transpose(torch.inverse(B_r),0,1))
+        C= left @ images @ right
+        z_splines_train = torch.matmul(A, C) @ torch.transpose(B, 0, 1)
+        MSE_train = torch.mean((images - z_splines_train) ** 2)         
+        #test set
+        left = torch.matmul(torch.inverse(A_r), (torch.transpose(A_q, 0, 1)))
+        right = torch.matmul(B_q, torch.transpose(torch.inverse(B_r),0,1))
+        C= left @ test_set @ right
+        z_splines_test = torch.matmul(A, C) @ torch.transpose(B, 0, 1)
+        MSE_test = torch.mean((test_set - z_splines_test) ** 2)       
+        """
+        # as in the report
         # make them orthogonal
         A = gram_schmidt(A)
         B = gram_schmidt(B)
-        #A = torch.qr(A).Q
-        #B = torch.qr(B).Q
         # fit the surface
         # solve the least squares problem by calculating C = (A^T A)^-1 A^T G B (B^T B)^-1 where G is the image    
         # C = np.linalg.inv(A.T @ A) @ A.T @ image @ B @ np.linalg.inv(B.T @ B) 
@@ -112,6 +130,7 @@ def select_knots(train_set,test_set,degree,uniform=False):
         C = AGB
         z_splines_test = torch.matmul(A, C) @ torch.transpose(B, 0, 1)
         MSE_test = torch.mean((test_set - z_splines_test) ** 2)
+
         return MSE_train, MSE_test, z_splines_train, z_splines_test
         
        

@@ -55,27 +55,33 @@ def B_spline_matrix(x, n, p, knots):
 
     return result_matrix
 
-def gram_schmidt(A):    
+def gram_schmidt(A, use_QR=True):    
     _, m = A.shape
-    
-    for i in range(m):
-        q = A[:, i]  # i-th column of A
+    # often we use QR since is more stable
+    if not use_QR:
+        for i in range(m):
+            q = A[:, i]  # i-th column of A
 
-        for j in range(i):
-            #q = q - torch.dot(A[:, j], A[:, i]) * A[:, j]
-            q = q - ( torch.dot(q, A[:, j]) / torch.dot(A[:, j], A[:, j]) ) * A[:, j]
+            for j in range(i):
+                #q = q - torch.dot(A[:, j], A[:, i]) * A[:, j]
+                q = q - ( torch.dot(q, A[:, j]) / torch.dot(A[:, j], A[:, j]) ) * A[:, j]
 
 
-        if torch.all(q.eq(torch.zeros_like(q))):
-            pass
-            # only goes here on the flow 2 dataset, for some reason.
-            #raise torch.linalg.LinAlgError("The column vectors are not linearly independent")
+            if torch.all(q.eq(torch.zeros_like(q))):
+                pass
+                # only goes here on the flow 2 dataset, for some reason.
+                #raise torch.linalg.LinAlgError("The column vectors are not linearly independent")
 
-        # normalize q
-        #q = q / torch.sqrt(torch.dot(q, q))
+            # normalize q
+            # add small number to avoid division by zero
+            #q = q + 1e-10
+            q = q / torch.sqrt(torch.dot(q, q))
 
-        # write the vector back in the matrix
-        A[:, i] = q
+            # write the vector back in the matrix
+            A[:, i] = q
+    else:
+        Q, R = torch.qr(A)
+        A = Q
 
 
     return A  # Convert back to NumPy array before returning
