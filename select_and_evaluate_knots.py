@@ -5,21 +5,9 @@ from data_functions import *
 import os
 from spline_functions import *
 import pandas as pd
-from generate_variance_plots import plot_variance
 
-def select_knots(train_set,test_set,degree,uniform=False):
-    """
-    Selects the knots for the B-spline basis functions using the k-means algorithm.
-    
-    Parameters:
-    - dataset: The dataset to use for the k-means algorithm.
-    - B-spline_order: The order of the B-spline basis functions.
-    - num_knots: The number of knots to select.
-    
-    Returns:
-    - A tensor containing the selected knots (padded).
-    """
-    def uniform_selection(num_knots,img_shape):
+
+def uniform_selection(num_knots,img_shape,degree):
         """
         Creates a uniform knot vector for the given number of knots and image shape.
         """
@@ -34,52 +22,69 @@ def select_knots(train_set,test_set,degree,uniform=False):
         knot_vector = torch.tensor(knot_vector, dtype=torch.float32) 
         # return x and y knot vectors, which are the same for uniform
         return knot_vector,knot_vector
+
+def non_uniform_selection(train_set,num_knots,img_shape,degree):
+    """
+    Creates a non-uniform knot vector for the given number of knots and image shape.
+    """
+    #find the variance of the dataset
+    variance = torch.var(train_set.float(), dim=0)
+    #find the indices of the top variance pixels
     
-    def non_uniform_selection(train_set,num_knots,img_shape):
-        """
-        Creates a non-uniform knot vector for the given number of knots and image shape.
-        """
-        #find the variance of the dataset
-        variance = torch.var(train_set.float(), dim=0)
-        #find the indices of the top variance pixels
+    sorted_indices = torch.argsort(variance.view(-1), descending=True)
+    # Convert flattened indices to x, y indices
+    x_indices = np.array(sorted_indices % img_shape[1])
+    y_indices= np.array(sorted_indices // img_shape[1])
+    #zip the indices together
+    indices = list(zip(x_indices,y_indices))
+    # select the top variance pixels but if x or y index exists already, skip it
+    x_knots = []
+    y_knots = []
+    non_allowed_indices = [0,img_shape[0]-1]
+    for x,y in indices: 
+        if x not in x_knots and not x in non_allowed_indices:
+            x_knots.append(x)
+        if y not in y_knots and not x in non_allowed_indices:
+            y_knots.append(y)
+        if len(x_knots) == num_knots and len(y_knots) == num_knots:
+            break
+    # if there to many indices, remove the last ones        
+    x_knots = x_knots[:num_knots]        
+    y_knots = y_knots[:num_knots]
+
+    # sort the knots
+    x_knots.sort()
+    # add 0 and 27 to the beginning and end of the knot vector and pad
+    x_knots=np.insert(x_knots,0,0)
+    x_knots=np.append(x_knots,img_shape[0]-1)
+    x_knots = np.pad(x_knots, (degree, degree), 'constant', constant_values=(min(x_knots), max(x_knots)))
+    x_knots = torch.tensor(x_knots, dtype=torch.float32)
+
+    y_knots.sort()
+    y_knots=np.insert(y_knots,0,0)
+    y_knots=np.append(y_knots,img_shape[1]-1)        
+    y_knots = np.pad(y_knots, (degree, degree), 'constant', constant_values=(min(y_knots), max(y_knots)))
+    y_knots = torch.tensor(y_knots, dtype=torch.float32)
+    # return x and y knot vectors
+    return x_knots,y_knots
+
+
+
+
+
+def select_knots(train_set,test_set,degree,uniform=False):
+    """
+    Selects the knots for the B-spline basis functions using the k-means algorithm.
+    
+    Parameters:
+    - dataset: The dataset to use for the k-means algorithm.
+    - B-spline_order: The order of the B-spline basis functions.
+    - num_knots: The number of knots to select.
+    
+    Returns:
+    - A tensor containing the selected knots (padded).
+    """   
         
-        sorted_indices = torch.argsort(variance.view(-1), descending=True)
-        # Convert flattened indices to x, y indices
-        x_indices = np.array(sorted_indices % img_shape[1])
-        y_indices= np.array(sorted_indices // img_shape[1])
-        #zip the indices together
-        indices = list(zip(x_indices,y_indices))
-        # select the top variance pixels but if x or y index exists already, skip it
-        x_knots = []
-        y_knots = []
-        non_allowed_indices = [0,img_shape[0]-1]
-        for x,y in indices: 
-            if x not in x_knots and not x in non_allowed_indices:
-                x_knots.append(x)
-            if y not in y_knots and not x in non_allowed_indices:
-                y_knots.append(y)
-            if len(x_knots) == num_knots and len(y_knots) == num_knots:
-                break
-        # if there to many indices, remove the last ones        
-        x_knots = x_knots[:num_knots]        
-        y_knots = y_knots[:num_knots]
-
-        # sort the knots
-        x_knots.sort()
-        # add 0 and 27 to the beginning and end of the knot vector and pad
-        x_knots=np.insert(x_knots,0,0)
-        x_knots=np.append(x_knots,img_shape[0]-1)
-        x_knots = np.pad(x_knots, (degree, degree), 'constant', constant_values=(min(x_knots), max(x_knots)))
-        x_knots = torch.tensor(x_knots, dtype=torch.float32)
-
-        y_knots.sort()
-        y_knots=np.insert(y_knots,0,0)
-        y_knots=np.append(y_knots,img_shape[1]-1)        
-        y_knots = np.pad(y_knots, (degree, degree), 'constant', constant_values=(min(y_knots), max(y_knots)))
-        y_knots = torch.tensor(y_knots, dtype=torch.float32)
-        # return x and y knot vectors
-        return x_knots,y_knots
-    
     def fit_surface(images,test_set,degree,x_knots,y_knots,img_shape):
         """
         Fits a OB-spline surface to the dataset.
@@ -125,7 +130,7 @@ def select_knots(train_set,test_set,degree,uniform=False):
     # let's just use the first image for debugging
     #train_set = train_set[0]
     # knot range to try
-    knot_range = np.arange(4,24,2) #end is exclusive  
+    knot_range = np.arange(2,24,2) #end is exclusive  
     #knot_range = [28] 
     # if uniform is true, use uniform knot spacing
     # Initialize an empty DataFrame
@@ -135,9 +140,9 @@ def select_knots(train_set,test_set,degree,uniform=False):
 
     for num_knots in knot_range:
         if uniform:
-            x_knots, y_knots = uniform_selection(num_knots, img_shape)
+            x_knots, y_knots = uniform_selection(num_knots, img_shape, degree)
         else:
-            x_knots, y_knots = non_uniform_selection(train_set,num_knots, img_shape)
+            x_knots, y_knots = non_uniform_selection(train_set,num_knots, img_shape, degree)
 
         # Fit the surface
         MSE_train, MSE_test, z_splines_train, z_splines_test = fit_surface(train_set, test_set, degree, x_knots, y_knots, img_shape)
