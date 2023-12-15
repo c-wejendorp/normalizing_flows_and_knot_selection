@@ -72,7 +72,7 @@ def non_uniform_selection(train_set,num_knots,img_shape,degree):
 
 
 
-def select_knots(train_set,test_set,degree,uniform=False):
+def select_knots(train_set,test_set,degree,uniform=False,scale=None):
     """
     Selects the knots for the B-spline basis functions using the k-means algorithm.
     
@@ -85,40 +85,53 @@ def select_knots(train_set,test_set,degree,uniform=False):
     - A tensor containing the selected knots (padded).
     """   
         
-    def fit_surface(images,test_set,degree,x_knots,y_knots,img_shape):
+    def fit_surface(images,test_set,degree,x_knots,y_knots,img_shape,scale=None):
         """
         Fits a OB-spline surface to the dataset.
         """
         L1 = len(x_knots) - (2*degree) -1 
         L2 = len(y_knots) - (2*degree) -1
 
+        
         # create the B-spline basis matrices
         A = B_spline_matrix(torch.arange(img_shape[0]), degree + 1 + L1 -1, degree, x_knots)
         B = B_spline_matrix(torch.arange(img_shape[1]), degree + 1 + L2 -1, degree, y_knots)
-
-         
-        # as in the report
-        # make them orthogonal
         A = gram_schmidt(A)
         B = gram_schmidt(B)
+
+        if scale is not None:
+            A_scaled = B_spline_matrix(torch.linspace(0,img_shape[0],img_shape[0]*scale), degree + 1 + L1 -1, degree, x_knots)
+            B_scaled = B_spline_matrix(torch.linspace(0,img_shape[1],img_shape[1]*scale), degree + 1 + L2 -1, degree, y_knots)
+            A_scaled = gram_schmidt(A_scaled)
+            B_scaled = gram_schmidt(B_scaled)                
+
         # fit the surface
         # solve the least squares problem by calculating C = (A^T A)^-1 A^T G B (B^T B)^-1 where G is the image    
         # C = np.linalg.inv(A.T @ A) @ A.T @ image @ B @ np.linalg.inv(B.T @ B) 
         # don't need to find the inverses, as A^T A and B^TB are identity matrices given the orthonormality of the basis functions
-        
+                
         #training set        
         AG = torch.matmul(torch.transpose(A, 0, 1), images)
         AGB = torch.matmul(AG, B)
         C = AGB
-        z_splines_train = torch.matmul(A, C) @ torch.transpose(B, 0, 1)  
-        MSE_train = torch.mean((images - z_splines_train) ** 2) 
+        
+        if scale is None:
+            z_splines_train = torch.matmul(A, C) @ torch.transpose(B, 0, 1)            
+            MSE_train = torch.mean((images - z_splines_train) ** 2)
+        else:
+            z_splines_train = torch.matmul(A_scaled, C) @ torch.transpose(B_scaled, 0, 1)
+            MSE_train = None
 
         #test set
         AG = torch.matmul(torch.transpose(A, 0, 1), test_set)
         AGB = torch.matmul(AG, B)
-        C = AGB
-        z_splines_test = torch.matmul(A, C) @ torch.transpose(B, 0, 1)
-        MSE_test = torch.mean((test_set - z_splines_test) ** 2)
+        C = AGB        
+        if scale is None:
+            z_splines_test = torch.matmul(A, C) @ torch.transpose(B, 0, 1)
+            MSE_test = torch.mean((test_set - z_splines_test) ** 2)
+        else:
+            z_splines_test = torch.matmul(A_scaled, C) @ torch.transpose(B_scaled, 0, 1)
+            MSE_test = None
 
         return MSE_train, MSE_test, z_splines_train, z_splines_test
         
@@ -145,15 +158,18 @@ def select_knots(train_set,test_set,degree,uniform=False):
             x_knots, y_knots = non_uniform_selection(train_set,num_knots, img_shape, degree)
 
         # Fit the surface
-        MSE_train, MSE_test, z_splines_train, z_splines_test = fit_surface(train_set, test_set, degree, x_knots, y_knots, img_shape)
+        MSE_train, MSE_test, z_splines_train, z_splines_test = fit_surface(train_set, test_set, degree, x_knots, y_knots, img_shape,scale=scale)
         test_z_splines.append(z_splines_test)
 
 
         # Determine the type of knot spacing
         knot_spacing_type = 'Uniform' if uniform else 'Non-Uniform'
 
-        # Add results to the DataFrame
-        result_df.loc[len(result_df)] = [knot_spacing_type, num_knots, round(MSE_train.item(),4), round(MSE_test.item(),4)]
+        if scale is None:
+            # Add results to the DataFrame
+            result_df.loc[len(result_df)] = [knot_spacing_type, num_knots, round(MSE_train.item(),4), round(MSE_test.item(),4)]
+        
+
 
     # Display the results DataFrame
     print(result_df)
@@ -172,6 +188,9 @@ if __name__ == "__main__":
     # add to list
     datasets = [images_org, samples_flow_1, samples_flow_2]    
     names = ["Original", "Flow_1", "Flow_2"]
+
+    #if we do scaling
+    scale = 4 
     
     #datasets = [images_org]
     for idx,dataset in enumerate(datasets):
@@ -187,3 +206,14 @@ if __name__ == "__main__":
         #save the test z splines
         torch.save(test_z_splines_uniform,"OB_surfaces/test_OB_surfaces_uniform_"+names[idx]+".pt")
         torch.save(test_z_splines_list_nonuniform,"OB_surfaces/test_OB_surfaces_non_uniform_"+names[idx]+".pt")
+
+        #now with scale
+        print(names[idx]+" with scale")
+        #select the knots
+        df_uniform,test_z_splines_uniform=select_knots(training_set,test_set,3,uniform=True,scale=scale)
+        df_non_uniform,test_z_splines_list_nonuniform=select_knots(training_set,test_set,3,uniform=False,scale=scale)
+        # the dataframes are not interesting in this case
+        #save the test z splines which are scaled
+        torch.save(test_z_splines_uniform,"OB_surfaces/test_OB_surfaces_uniform_"+names[idx]+f"_scale_{scale}.pt")
+        torch.save(test_z_splines_list_nonuniform,"OB_surfaces/test_OB_surfaces_non_uniform_"+names[idx]+f"_scale_{scale}.pt")
+
