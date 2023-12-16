@@ -93,7 +93,7 @@ def plot_knot_placement(num_knots):
         plot_flow(ax, title, variance, fig, knots=knots, normalizer=normalizer)
     
     fig.tight_layout()
-    fig.suptitle(f"Knot Selection with {num_knots} internal knots", y=0.8)
+    fig.suptitle(f"Knot Selection with {num_knots} internal knots", y=0.72)
 
     os.makedirs("figures/variance_plots", exist_ok=True)
     plt.savefig(f"figures/variance_plots/knot_placement_{num_knots}_knots.png", dpi=300, bbox_inches='tight')

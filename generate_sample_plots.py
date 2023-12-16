@@ -27,5 +27,5 @@ def plot_samples(model_name, num_samples):
     show_batch_images(samples,num_samples, clamp=True,save=True, model_name=f'flow_{flow_type}')
 
 if __name__ == "__main__":    
-    plot_samples("flow_1_logistic_seed_30.pt_all_data_epoch_89.pth",16)
-    plot_samples("flow_2_logistic_seed_30.pt_all_data_epoch_89.pth",16)
+    plot_samples("flow_1_logistic_seed_30.pt_all_data_epoch_89.pth",9)
+    plot_samples("flow_2_logistic_seed_30.pt_all_data_epoch_89.pth",9)

@@ -53,11 +53,11 @@ def show_batch_images(images, batch_size, clamp=False,save=True,model_name=None)
     plt.subplots_adjust(wspace=0.1, hspace=0.1) 
     # add title
     title = f"Samples from {model_name}, clamped" if clamp else f"Samples from {model_name}"
-    plt.suptitle(title)
+    plt.suptitle(title, fontsize=10)
     # remove whitespace
     #plt.tight_layout()
     #save fig
-    plt.savefig(f"figures/sample_plots/{title}.png", dpi=300) if save else plt.show()
+    plt.savefig(f"figures/sample_plots/{title}.png", dpi=300,bbox_inches='tight') if save else plt.show()
     #plt.savefig(f"{title}.png", dpi=300) if save else plt.show()
 
 if __name__ == "__main__":
