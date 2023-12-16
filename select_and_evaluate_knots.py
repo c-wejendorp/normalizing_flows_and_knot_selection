@@ -96,14 +96,14 @@ def select_knots(train_set,test_set,degree,uniform=False,scale=None):
         # create the B-spline basis matrices
         A = B_spline_matrix(torch.arange(img_shape[0]), degree + 1 + L1 -1, degree, x_knots)
         B = B_spline_matrix(torch.arange(img_shape[1]), degree + 1 + L2 -1, degree, y_knots)
-        A = gram_schmidt(A)
-        B = gram_schmidt(B)
+        A = gram_schmidt(A,use_QR=False)
+        B = gram_schmidt(B,use_QR=False)
 
         if scale is not None:
             A_scaled = B_spline_matrix(torch.linspace(0,img_shape[0],img_shape[0]*scale), degree + 1 + L1 -1, degree, x_knots)
             B_scaled = B_spline_matrix(torch.linspace(0,img_shape[1],img_shape[1]*scale), degree + 1 + L2 -1, degree, y_knots)
-            A_scaled = gram_schmidt(A_scaled)
-            B_scaled = gram_schmidt(B_scaled)                
+            A_scaled = gram_schmidt(A_scaled,use_QR=False)
+            B_scaled = gram_schmidt(B_scaled,use_QR=False)                
 
         # fit the surface
         # solve the least squares problem by calculating C = (A^T A)^-1 A^T G B (B^T B)^-1 where G is the image    

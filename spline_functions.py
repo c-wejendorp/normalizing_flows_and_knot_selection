@@ -74,7 +74,7 @@ def gram_schmidt(A, use_QR=True):
 
             # normalize q
             # add small number to avoid division by zero
-            #q = q + 1e-10
+            q = q + 1e-10
             q = q / torch.sqrt(torch.dot(q, q))
 
             # write the vector back in the matrix

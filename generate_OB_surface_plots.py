@@ -90,14 +90,14 @@ def plot3D(num_knots=10,seed=32,knot_type="uniform",degree=3,grid=1000):
     # create the B-spline basis matrices
     A = B_spline_matrix(torch.arange(img_shape[0]), degree + 1 + L1 -1, degree, x_knots)
     B = B_spline_matrix(torch.arange(img_shape[1]), degree + 1 + L2 -1, degree, y_knots)
-    A = gram_schmidt(A)
-    B = gram_schmidt(B)
+    A = gram_schmidt(A,use_QR=False)
+    B = gram_schmidt(B,use_QR=False)
 
     
     A_scaled = B_spline_matrix(torch.linspace(0,img_shape[0],img_shape[0]*grid), degree + 1 + L1 -1, degree, x_knots)
     B_scaled = B_spline_matrix(torch.linspace(0,img_shape[1],img_shape[1]*grid), degree + 1 + L2 -1, degree, y_knots)
-    A_scaled = gram_schmidt(A_scaled)
-    B_scaled = gram_schmidt(B_scaled)      
+    A_scaled = gram_schmidt(A_scaled,use_QR=False)
+    B_scaled = gram_schmidt(B_scaled,use_QR=False)      
 
     #select a random image from the test set    
     np.random.seed(seed)
